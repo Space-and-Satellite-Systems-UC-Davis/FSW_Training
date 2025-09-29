@@ -104,8 +104,8 @@ void usart1_gpio_init() {
 
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOAEN;
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOGEN;
-	wait_with_timeout(is_GPIOA_not_ready, DEFAULT_TIMEOUT_MS);
-	wait_with_timeout(is_GPIOG_not_ready, DEFAULT_TIMEOUT_MS);
+	while (GPIOA->OTYPER == 0xFFFFFFFF);
+	while (GPIOG->OTYPER == 0xFFFFFFFF);
 
 	// configure the USART Pins to Alternate Function mode
 	GPIOA->MODER &= ~(GPIO_MODER_MODE9_Msk);
@@ -124,7 +124,7 @@ void usart1_gpio_init() {
 #elif OP_REV == 2
 
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOBEN;
-	wait_with_timeout(is_GPIOB_not_ready, DEFAULT_TIMEOUT_MS);
+	while (GPIOB->OTYPER == 0xFFFFFFFF);
 
 	// configure the USART Pins to Alternate Function mode
 	GPIOB->MODER &= ~(GPIO_MODER_MODE6_Msk | GPIO_MODER_MODE7_Msk);
@@ -135,7 +135,7 @@ void usart1_gpio_init() {
 	GPIOB->AFR[0] |= (7U << GPIO_AFRL_AFSEL6_Pos) | (7U << GPIO_AFRL_AFSEL7_Pos);
 #elif OP_REV == 3 
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOGEN;
-	wait_with_timeout(is_GPIOG_not_ready, DEFAULT_TIMEOUT_MS);
+	while (GPIOG->OTYPER == 0xFFFFFFFF);
 
 
 	// configure the USART Pins to Alternate Function mode
@@ -144,7 +144,7 @@ void usart1_gpio_init() {
 
 	// configure each pin to AF7
 	GPIOG->AFR[1] &= ~(GPIO_AFRH_AFSEL9_Msk | GPIO_AFRH_AFSEL10_Msk);
-	GPIOG->AFR[1] |= (GPIO_AFRX_AF7 << GPIO_AFRH_AFSEL9_Pos) | (GPIO_AFRX_AF7 << GPIO_AFRH_AFSEL10_Pos);
+	GPIOG->AFR[1] |= (7U << GPIO_AFRH_AFSEL9_Pos) | (7U << GPIO_AFRH_AFSEL10_Pos);
 #endif
 
 	return;
@@ -153,14 +153,14 @@ void usart1_gpio_init() {
 void usart2_gpio_init() {
 #if OP_REV == 3
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIODEN;
-	wait_with_timeout(is_GPIOD_not_ready, DEFAULT_TIMEOUT_MS);
+	while (GPIOD->OTYPER == 0xFFFFFFFF);
 
 	GPIOD->MODER &= ~(GPIO_MODER_MODE5_Msk | GPIO_MODER_MODE6_Msk);
 	GPIOD->MODER |= (GPIO_MODER_MODE5_1 | GPIO_MODER_MODE6_1);
 
 	// configure each pin to AF7
 	GPIOD->AFR[0] &= ~(GPIO_AFRL_AFSEL5_Msk | GPIO_AFRL_AFSEL6_Msk);
-	GPIOD->AFR[0] |= (GPIO_AFRX_AF7 << GPIO_AFRL_AFSEL6_Pos) | (GPIO_AFRX_AF7 << GPIO_AFRL_AFSEL5_Pos);
+	GPIOD->AFR[0] |= (7U << GPIO_AFRL_AFSEL6_Pos) | (7U << GPIO_AFRL_AFSEL5_Pos);
 #endif
 	return;
 
@@ -177,7 +177,7 @@ void usart3_gpio_init() {
 	 */
 
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;
-	wait_with_timeout(is_GPIOC_not_ready, DEFAULT_TIMEOUT_MS);
+	while (GPIOC->OTYPER == 0xFFFFFFFF);
 
 	// configure the USART Pins to Alternate Function mode
 	GPIOC->MODER &= ~(GPIO_MODER_MODE4_Msk | GPIO_MODER_MODE5_Msk);
@@ -212,7 +212,7 @@ void lpuart_gpio_init() {
 	 */
 
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOCEN;
-	wait_with_timeout(is_GPIOC_not_ready, DEFAULT_TIMEOUT_MS);
+	while (GPIOC->OTYPER == 0xFFFFFFFF);
 
 	// configure the LPUART Pins to Alternate Function mode
 	GPIOC->MODER &= ~(GPIO_MODER_MODE0_Msk | GPIO_MODER_MODE1_Msk);
@@ -224,23 +224,23 @@ void lpuart_gpio_init() {
 
 #elif OP_REV == 3
 	/*
-	 * OP REV 2 GPIO
-	 * 		TX		GPIO G 7		Alternate Function 8
-	 * 		RX		GPIO G 8		Alternate Function 8
+	 * OP REV 3 GPIO
+	 * 		TX		GPIO G 7		Alternate Function 7
+	 * 		RX		GPIO G 8		Alternate Function 7
 	 */
 
 	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOGEN;
-	wait_with_timeout(is_GPIOG_not_ready, DEFAULT_TIMEOUT_MS);
+	while (GPIOG->OTYPER == 0xFFFFFFFF);
 
 	// configure the LPUART Pins to Alternate Function mode
 	GPIOG->MODER &= ~(GPIO_MODER_MODE7_Msk | GPIO_MODER_MODE8_Msk);
 	GPIOG->MODER |= (GPIO_MODER_MODE7_1 | GPIO_MODER_MODE8_1);
 
-	// configure each pin to AF8
+	// configure each pin to AF7
 	GPIOG->AFR[0] &= ~(GPIO_AFRL_AFSEL7_Msk);
 	GPIOG->AFR[1] &= ~(GPIO_AFRH_AFSEL8_Msk);
-	GPIOG->AFR[0] |= (GPIO_AFRX_AF8 << GPIO_AFRL_AFSEL7_Pos);
-	GPIOG->AFR[1] |= (GPIO_AFRX_AF8 << GPIO_AFRH_AFSEL8_Pos);
+	GPIOG->AFR[0] |= (8U << GPIO_AFRL_AFSEL7_Pos);
+	GPIOG->AFR[1] |= (8U << GPIO_AFRH_AFSEL8_Pos);
 
 #endif
 
@@ -329,7 +329,7 @@ void usart_transmitChar(USART_TypeDef *bus, char c) {
 
 	// Wait for the Transfer to be completed by monitoring the TC flag
 	uint64_t start_time = getSysTime(); //time in ms
-	while(!(bus->ISR & USART_ISR_TC) && !(is_time_out(start_time, DEFAULT_TIMEOUT_MS)));
+	while(!(bus->ISR & USART_ISR_TC));
 }
 
 void usart_transmitBytes(USART_TypeDef *bus, uint8_t message[]) {
@@ -340,7 +340,7 @@ void usart_transmitBytes(USART_TypeDef *bus, uint8_t message[]) {
 	for (int i = 0; i < (int)strlen(message); i++){
 		// wait until Data register is empty
 		uint64_t start_time = getSysTime(); //time in ms
-		while (!(bus->ISR & USART_ISR_TXE) && !(is_time_out(start_time, DEFAULT_TIMEOUT_MS)));
+		while (!(bus->ISR & USART_ISR_TXE));
 		
 		// Place the character in the Data Register
 		bus->TDR = message[i];
@@ -348,7 +348,7 @@ void usart_transmitBytes(USART_TypeDef *bus, uint8_t message[]) {
 
 	// Wait for the Transfer to be completed by monitoring the TC flag
 	uint64_t start_time = getSysTime(); //time in ms
-	while(!(bus->ISR & USART_ISR_TC) && !(is_time_out(start_time, DEFAULT_TIMEOUT_MS)));
+	while(!(bus->ISR & USART_ISR_TC));
 }
 
 /**************************** USART RECEIVER ****************************/
@@ -379,7 +379,7 @@ int usart_receiveBytes(USART_TypeDef *bus, uint8_t buffer[], uint16_t size) {
 
 	uint64_t start_time = getSysTime(); //time in ms
 	uint16_t sz = 0;
-	while ((sz < size) && !(is_time_out(start_time, DEFAULT_TIMEOUT_MS))) {
+	while ((sz < size)) {
 		if (rxbuff->front != rxbuff->rear) {	// rxbuff not empty
 			buffer[sz++] = rxbuff->buffer[rxbuff->front];
 			rxbuff->front = (rxbuff->front + 1) % ReceiveBufferLen;

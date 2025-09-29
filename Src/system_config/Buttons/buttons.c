@@ -89,7 +89,7 @@ void buttons_init() {
 #elif OP_REV == 3
     RCC->AHB2ENR |= RCC_AHB2ENR_GPIOGEN;
 	// RCC->APB2ENR |= RCC_APB2ENR_SYSCFGEN;
-    wait_with_timeout(is_GPIOG_not_ready, DEFAULT_TIMEOUT_MS);
+    while (GPIOG->OTYPER == 0xFFFFFFFF);
 
     GPIOG->MODER &= ~GPIO_MODER_MODE12;
 
@@ -143,4 +143,3 @@ void Button1_Handler(){
 void ButtonSW1_Handler() {
     buttonSW1 = true;
 }
-

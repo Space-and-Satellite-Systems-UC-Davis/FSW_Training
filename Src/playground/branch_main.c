@@ -10,7 +10,9 @@ void branch_main() {
 
 	// infinite loop
 	while (1) {
-
+		if(get_buttonStatus_SW1()){
+			printMsg("BUTTON PRESSED");
+		}
 	}
 
 	// NOTE

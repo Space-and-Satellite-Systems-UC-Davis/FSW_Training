@@ -4,7 +4,7 @@
 #include "stm32l476xx.h"
 
 
-#define OP_REV 2
+#define OP_REV 3
 
 #if OP_REV == 1 || OP_REV == 2
 #define UNUSED_GPIO             GPIOG, 1
@@ -13,6 +13,7 @@
 
 typedef enum {false, true} bool;
 #define NULL 0
+#define DEFAULT_TIMEOUT_MS 1000
 
 /*
  * Insert a certain number of Assembly nop instructions
