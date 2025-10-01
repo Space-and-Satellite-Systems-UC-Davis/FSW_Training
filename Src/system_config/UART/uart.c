@@ -49,7 +49,7 @@ typedef struct _rx_fifo USART_ReceiverBuffer;
 USART_ReceiverBuffer USART1_RxBuffer;
 USART_ReceiverBuffer USART3_RxBuffer;
 
-#elif OP_REV == 2
+#elif OP_REV == 2 || OP_REV == 3
 
 USART_ReceiverBuffer USART1_RxBuffer;
 USART_ReceiverBuffer LPUART1_RxBuffer;
@@ -66,7 +66,7 @@ USART_ReceiverBuffer* uart_revisionBusDistinguisher(USART_TypeDef *bus) {
 	} else if (bus == USART3) {
 		rxbuff = &USART3_RxBuffer;
 	}
-#elif OP_REV == 2
+#elif OP_REV == 2 || OP_REV == 3
 	if (bus == USART1) {
 		rxbuff = &USART1_RxBuffer;
 	} else if (bus == LPUART1) {
@@ -133,14 +133,35 @@ void usart1_gpio_init() {
 	// configure each pin to AF7
 	GPIOB->AFR[0] &= ~(GPIO_AFRL_AFSEL6_Msk | GPIO_AFRL_AFSEL7_Msk);
 	GPIOB->AFR[0] |= (7U << GPIO_AFRL_AFSEL6_Pos) | (7U << GPIO_AFRL_AFSEL7_Pos);
+#elif OP_REV == 3 
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOGEN;
+	while (GPIOG->OTYPER == 0xFFFFFFFF);
 
+
+	// configure the USART Pins to Alternate Function mode
+	GPIOG->MODER &= ~(GPIO_MODER_MODE9_Msk | GPIO_MODER_MODE10_Msk);
+	GPIOG->MODER |= (GPIO_MODER_MODE9_1 | GPIO_MODER_MODE10_1);
+
+	// configure each pin to AF7
+	GPIOG->AFR[1] &= ~(GPIO_AFRH_AFSEL9_Msk | GPIO_AFRH_AFSEL10_Msk);
+	GPIOG->AFR[1] |= (7U << GPIO_AFRH_AFSEL9_Pos) | (7U << GPIO_AFRH_AFSEL10_Pos);
 #endif
 
 	return;
 
 }
 void usart2_gpio_init() {
+#if OP_REV == 3
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIODEN;
+	while (GPIOD->OTYPER == 0xFFFFFFFF);
 
+	GPIOD->MODER &= ~(GPIO_MODER_MODE5_Msk | GPIO_MODER_MODE6_Msk);
+	GPIOD->MODER |= (GPIO_MODER_MODE5_1 | GPIO_MODER_MODE6_1);
+
+	// configure each pin to AF7
+	GPIOD->AFR[0] &= ~(GPIO_AFRL_AFSEL5_Msk | GPIO_AFRL_AFSEL6_Msk);
+	GPIOD->AFR[0] |= (7U << GPIO_AFRL_AFSEL6_Pos) | (7U << GPIO_AFRL_AFSEL5_Pos);
+#endif
 	return;
 
 }
@@ -201,6 +222,26 @@ void lpuart_gpio_init() {
 	GPIOC->AFR[0] &= ~(GPIO_AFRL_AFSEL0_Msk | GPIO_AFRL_AFSEL1_Msk);
 	GPIOC->AFR[0] |= (8U << GPIO_AFRL_AFSEL0_Pos) | (8U << GPIO_AFRL_AFSEL1_Pos);
 
+#elif OP_REV == 3
+	/*
+	 * OP REV 3 GPIO
+	 * 		TX		GPIO G 7		Alternate Function 7
+	 * 		RX		GPIO G 8		Alternate Function 7
+	 */
+
+	RCC->AHB2ENR |= RCC_AHB2ENR_GPIOGEN;
+	while (GPIOG->OTYPER == 0xFFFFFFFF);
+
+	// configure the LPUART Pins to Alternate Function mode
+	GPIOG->MODER &= ~(GPIO_MODER_MODE7_Msk | GPIO_MODER_MODE8_Msk);
+	GPIOG->MODER |= (GPIO_MODER_MODE7_1 | GPIO_MODER_MODE8_1);
+
+	// configure each pin to AF7
+	GPIOG->AFR[0] &= ~(GPIO_AFRL_AFSEL7_Msk);
+	GPIOG->AFR[1] &= ~(GPIO_AFRH_AFSEL8_Msk);
+	GPIOG->AFR[0] |= (8U << GPIO_AFRL_AFSEL7_Pos);
+	GPIOG->AFR[1] |= (8U << GPIO_AFRH_AFSEL8_Pos);
+
 #endif
 
 	return;
@@ -210,7 +251,7 @@ void lpuart_gpio_init() {
 /*************************** USART INITIALIZATIONS ***************************/
 
 void uart_8bit_1stop(USART_TypeDef *bus, int baud_rate, bool rts_cts_control) {
-	// all UARTs use HSI16 as per core_cofig.c,init_core_clocks()
+	// all UARTs use HSI16 as per core_config.c,init_core_clocks()
 	uint32_t uart_clock_speed = 16000000;
 	if (bus == LPUART1) {
 		// prep for baud rate calculation
@@ -287,6 +328,7 @@ void usart_transmitChar(USART_TypeDef *bus, char c) {
 	bus->TDR = c;
 
 	// Wait for the Transfer to be completed by monitoring the TC flag
+	uint64_t start_time = getSysTime(); //time in ms
 	while(!(bus->ISR & USART_ISR_TC));
 }
 
@@ -297,18 +339,21 @@ void usart_transmitBytes(USART_TypeDef *bus, uint8_t message[]) {
 	// Transfer each character one at a time
 	for (int i = 0; i < (int)strlen(message); i++){
 		// wait until Data register is empty
+		uint64_t start_time = getSysTime(); //time in ms
 		while (!(bus->ISR & USART_ISR_TXE));
+		
 		// Place the character in the Data Register
 		bus->TDR = message[i];
 	}
 
 	// Wait for the Transfer to be completed by monitoring the TC flag
+	uint64_t start_time = getSysTime(); //time in ms
 	while(!(bus->ISR & USART_ISR_TC));
 }
 
 /**************************** USART RECEIVER ****************************/
 
-bool usart_recieverTimedOut(USART_ReceiverBuffer *rx) {
+bool usart_receiverTimedOut(USART_ReceiverBuffer *rx) {
 	if (rx->timedout) {
 		rx->timedout = false;
 		return true;
@@ -317,7 +362,7 @@ bool usart_recieverTimedOut(USART_ReceiverBuffer *rx) {
 	}
 }
 
-bool usart_recieveBufferNotEmpty(USART_TypeDef *bus) {
+bool usart_receiveBufferNotEmpty(USART_TypeDef *bus) {
 	USART_ReceiverBuffer *rxbuff = uart_revisionBusDistinguisher(bus);
 	if (rxbuff == NULL) {
 		return false;
@@ -326,20 +371,21 @@ bool usart_recieveBufferNotEmpty(USART_TypeDef *bus) {
 	return (rxbuff->front != rxbuff->rear);
 }
 
-int usart_recieveBytes(USART_TypeDef *bus, uint8_t buffer[], uint16_t size) {
+int usart_receiveBytes(USART_TypeDef *bus, uint8_t buffer[], uint16_t size) {
 	USART_ReceiverBuffer *rxbuff = uart_revisionBusDistinguisher(bus);
 	if (rxbuff == NULL) {
 		return false;
 	}
 
+	uint64_t start_time = getSysTime(); //time in ms
 	uint16_t sz = 0;
-	while (sz < size) {
+	while ((sz < size)) {
 		if (rxbuff->front != rxbuff->rear) {	// rxbuff not empty
 			buffer[sz++] = rxbuff->buffer[rxbuff->front];
 			rxbuff->front = (rxbuff->front + 1) % ReceiveBufferLen;
 		}
 
-		if (usart_recieverTimedOut(rxbuff)) {
+		if (usart_receiverTimedOut(rxbuff)) {
 			break;
 		}
 	}
@@ -420,4 +466,3 @@ void LPUART1_IRQHandler() {
 #endif
 	}
 }
-

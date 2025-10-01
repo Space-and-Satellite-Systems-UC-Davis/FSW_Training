@@ -59,6 +59,6 @@ void systick_init() {
  */
 void SysTick_Handler() {
 	systick_time++;
-	blinky();
+	// blinky();
 }
 
